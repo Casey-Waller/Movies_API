@@ -34,18 +34,76 @@ movie_schema = MovieSchema()
 multi_movie_schema = MovieSchema(many=True)            
 
 
+@app.route('/movie/add', methods=["POST"])
+def add_movie():
+    if request.content_type !='application/json':
+        return jsonify('Error: Data must be sent as JSON')
+
+    post_data = request.get_json()
+    title = post_data.get('title')
+    genre = post_data.get('genre')
+    mpaa_rating = post_data.get('mpaa_rating')
+    poster_image = post_data.get('poster_image')
+
+    if title == None:
+        return jsonify("Error: You must provide a 'title' key")
+    if genre == None:
+        return jsonify("Error: You must provide a 'genre' key")
 
 
+    new_record = Movie(title, genre, mpaa_rating, poster_image)
+    db.session.add(new_record)
+    db.session.commit()
+
+    return jsonify(movie_schema.dump(new_record))
+
+@app.route('/movies/get', methods=["GET"])    
+def get_all_movies():
+    all_records = db.session.query(Movie).all()            
+    return jsonify(multi_movie_schema.dump(all_records))
 
 
+@app.route('/movies/get/<id>', methods=["GET"])
+def get_movie_by_id(id):
+    one_movie = db.session.query(Movie).filter(Movie.id == id).first()
+    return jsonify(movie_schema.dump(one_movie))
 
 
+# PUT endpoint to update a record
+@app.route('/movies/update/<id>', methods=["PUT"])
+def update_movie_by_id(id):
+    if request.content_type !='application/json':
+        return jsonify('Error: Data must be sent as JSON')
 
+    put_data = request.get_json()
+    title = put_data.get('title')
+    genre = put_data.get('genre')
+    mpaa_rating = put_data.get('mpaa_rating')
+    poster_image = put_data.get('poster_image')
 
+    movie_to_update = db.session.query(Movie).filter(Movie.id == id).first()
 
+    if title != None:
+        movie_to_update.title = title
+    if genre != None:
+        movie_to_update.genre = genre
+    if mpaa_rating != None:
+        movie_to_update.mpaa_rating = mpaa_rating
+    if poster_image != None:
+        movie_to_update.poster_image = poster_image 
 
+    db.session.commit()
 
+    return jsonify(movie_schema.dump(movie_to_update))
 
+# DELETE endpoint
+@app.route('/movies/delete/<id>', methods=["DELETE"])
+def delete_movie_by_id(id):
+    movie_to_delete = db.session.query(Movie).filter(Movie.id == id).first()
+    db.session.delete(movie_to_delete)
+    db.session.commit()
+    return jsonify("Movie successfully deleted")
+    
 
 
 
